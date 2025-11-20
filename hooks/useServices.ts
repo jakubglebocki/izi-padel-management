@@ -8,10 +8,10 @@ import { toast } from 'sonner'
 export function useServices() {
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   const fetchServices = async () => {
     try {
+      const supabase = createClient()
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -38,6 +38,7 @@ export function useServices() {
 
   const createService = async (serviceData: Omit<Service, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     try {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
@@ -64,6 +65,7 @@ export function useServices() {
 
   const updateService = async (id: string, serviceData: Partial<Service>) => {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from('services')
         .update(serviceData)
@@ -85,6 +87,7 @@ export function useServices() {
 
   const deleteService = async (id: string) => {
     try {
+      const supabase = createClient()
       const { error } = await supabase
         .from('services')
         .delete()

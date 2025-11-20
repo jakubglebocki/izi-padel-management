@@ -27,9 +27,11 @@ export function Header({ onMenuClick }: HeaderProps) {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser()
+      setUser(data.user)
+    }
+    getUser()
   }, [supabase])
 
   const handleLogout = async () => {

@@ -8,10 +8,10 @@ import { toast } from 'sonner'
 export function useClients() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   const fetchClients = async () => {
     try {
+      const supabase = createClient()
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -36,8 +36,9 @@ export function useClients() {
     }
   }
 
-  const createClient = async (clientData: Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const createClientRecord = async (clientData: Omit<Client, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     try {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
@@ -64,6 +65,7 @@ export function useClients() {
 
   const updateClient = async (id: string, clientData: Partial<Client>) => {
     try {
+      const supabase = createClient()
       const { data, error } = await supabase
         .from('clients')
         .update(clientData)
@@ -85,6 +87,7 @@ export function useClients() {
 
   const deleteClient = async (id: string) => {
     try {
+      const supabase = createClient()
       const { error } = await supabase
         .from('clients')
         .delete()
@@ -108,7 +111,7 @@ export function useClients() {
   return {
     clients,
     loading,
-    createClient,
+    createClient: createClientRecord,
     updateClient,
     deleteClient,
     refetch: fetchClients,
