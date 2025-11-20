@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Court } from '@/types'
+import type { Court, CourtPricing } from '@/types'
 import { toast } from 'sonner'
 
 export function useCourts() {
@@ -21,7 +21,10 @@ export function useCourts() {
 
       const { data, error } = await supabase
         .from('courts')
-        .select('*')
+        .select(`
+          *,
+          pricing:court_pricing(*)
+        `)
         .eq('user_id', user.id)
         .order('display_order', { ascending: true })
 
@@ -104,6 +107,89 @@ export function useCourts() {
     }
   }
 
+  // Court Pricing functions
+  const createCourtPricing = async (courtId: string, pricingData: Omit<CourtPricing, 'id' | 'court_id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('court_pricing')
+        .insert([{ ...pricingData, court_id: courtId }])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Update courts state to include new pricing
+      setCourts(prev => prev.map(court => {
+        if (court.id === courtId) {
+          return {
+            ...court,
+            pricing: [...(court.pricing || []), data]
+          }
+        }
+        return court
+      }))
+
+      toast.success('Cennik został dodany')
+      return data
+    } catch (error) {
+      console.error('Error creating court pricing:', error)
+      toast.error('Błąd dodawania cennika')
+      throw error
+    }
+  }
+
+  const updateCourtPricing = async (id: string, pricingData: Partial<CourtPricing>) => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('court_pricing')
+        .update(pricingData)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Update courts state
+      setCourts(prev => prev.map(court => ({
+        ...court,
+        pricing: court.pricing?.map(p => p.id === id ? data : p)
+      })))
+
+      toast.success('Cennik został zaktualizowany')
+      return data
+    } catch (error) {
+      console.error('Error updating court pricing:', error)
+      toast.error('Błąd aktualizacji cennika')
+      throw error
+    }
+  }
+
+  const deleteCourtPricing = async (id: string) => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('court_pricing')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      // Update courts state
+      setCourts(prev => prev.map(court => ({
+        ...court,
+        pricing: court.pricing?.filter(p => p.id !== id)
+      })))
+
+      toast.success('Cennik został usunięty')
+    } catch (error) {
+      console.error('Error deleting court pricing:', error)
+      toast.error('Błąd usuwania cennika')
+      throw error
+    }
+  }
+
   useEffect(() => {
     fetchCourts()
   }, [])
@@ -114,6 +200,9 @@ export function useCourts() {
     createCourt,
     updateCourt,
     deleteCourt,
+    createCourtPricing,
+    updateCourtPricing,
+    deleteCourtPricing,
     refetch: fetchCourts,
   }
 }

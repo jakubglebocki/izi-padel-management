@@ -25,12 +25,31 @@ CREATE TABLE profiles (
 CREATE TABLE courts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    club_name TEXT,
     name TEXT NOT NULL,
+    court_type TEXT DEFAULT 'double' CHECK (court_type IN ('single', 'double')),
     hourly_rate DECIMAL(10,2),
     is_active BOOLEAN DEFAULT true,
     color TEXT DEFAULT '#3b82f6',
     display_order INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- COURT PRICING TABLE (Time-based pricing)
+-- ============================================
+CREATE TABLE court_pricing (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    court_id UUID REFERENCES courts(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    day_type TEXT NOT NULL CHECK (day_type IN ('weekday', 'weekend', 'all')),
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    price_per_hour DECIMAL(10,2) NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    display_order INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ============================================
@@ -123,6 +142,7 @@ CREATE INDEX idx_bookings_status ON bookings(status);
 CREATE INDEX idx_clients_user_id ON clients(user_id);
 CREATE INDEX idx_services_user_id ON services(user_id);
 CREATE INDEX idx_courts_user_id ON courts(user_id);
+CREATE INDEX idx_court_pricing_court_id ON court_pricing(court_id);
 CREATE INDEX idx_working_hours_user_id ON working_hours(user_id);
 CREATE INDEX idx_blocked_slots_user_id ON blocked_slots(user_id);
 
@@ -133,6 +153,7 @@ CREATE INDEX idx_blocked_slots_user_id ON blocked_slots(user_id);
 -- Enable RLS on all tables
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE courts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE court_pricing ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
@@ -168,6 +189,47 @@ CREATE POLICY "Users can update own courts"
 CREATE POLICY "Users can delete own courts"
     ON courts FOR DELETE
     USING (auth.uid() = user_id);
+
+-- Court pricing policies
+CREATE POLICY "Users can view own court pricing"
+    ON court_pricing FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM courts
+            WHERE courts.id = court_pricing.court_id
+            AND courts.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own court pricing"
+    ON court_pricing FOR INSERT
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM courts
+            WHERE courts.id = court_pricing.court_id
+            AND courts.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update own court pricing"
+    ON court_pricing FOR UPDATE
+    USING (
+        EXISTS (
+            SELECT 1 FROM courts
+            WHERE courts.id = court_pricing.court_id
+            AND courts.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete own court pricing"
+    ON court_pricing FOR DELETE
+    USING (
+        EXISTS (
+            SELECT 1 FROM courts
+            WHERE courts.id = court_pricing.court_id
+            AND courts.user_id = auth.uid()
+        )
+    );
 
 -- Services policies
 CREATE POLICY "Users can view own services"

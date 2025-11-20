@@ -54,10 +54,14 @@ export default function NewServicePage() {
   const [color, setColor] = useState('#3b82f6')
   const [isActive, setIsActive] = useState(true)
   const [selectedCourtId, setSelectedCourtId] = useState<string>('')
+  const [selectedPricingId, setSelectedPricingId] = useState<string>('')
 
-  // Get selected court rate
+  // Get selected court and pricing
   const selectedCourt = courts.find(c => c.id === selectedCourtId)
-  const courtCostPerHour = selectedCourt?.hourly_rate || 0
+  const selectedPricing = selectedCourt?.pricing?.find(p => p.id === selectedPricingId)
+  
+  // Use pricing (required)
+  const courtCostPerHour = selectedPricing?.price_per_hour || 0
 
   // Calculate financial summary
   const calculateRecommendedPrice = () => {
@@ -340,7 +344,7 @@ export default function NewServicePage() {
                         <div className="flex items-center justify-between w-full gap-4">
                           <span>{court.name}</span>
                           <span className="text-slate-400 text-sm">
-                            {court.hourly_rate ? `${court.hourly_rate} zł/h` : 'Brak ceny'}
+                            {court.pricing?.length || 0} przedziałów
                           </span>
                         </div>
                       </SelectItem>
@@ -351,24 +355,67 @@ export default function NewServicePage() {
             </div>
 
             {selectedCourt && (
-              <div className="bg-emerald-600/10 border border-emerald-600/20 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-medium text-emerald-400">
-                      {selectedCourt.name}
-                    </div>
-                    <div className="text-xs text-slate-400 mt-1">
-                      Koszt za {durationHours}h: {(courtCostPerHour * durationHours).toFixed(2)} zł
+              <>
+                {selectedCourt.pricing && selectedCourt.pricing.length > 0 ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="pricing" className="text-slate-200">
+                      Przedział cenowy *
+                    </Label>
+                    <Select value={selectedPricingId} onValueChange={setSelectedPricingId}>
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectValue placeholder="Wybierz przedział cenowy" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        {selectedCourt.pricing.map((pricing) => (
+                          <SelectItem
+                            key={pricing.id}
+                            value={pricing.id}
+                            className="text-white focus:bg-slate-700"
+                          >
+                            {pricing.name} - {pricing.price_per_hour} zł/h
+                            <span className="text-xs text-slate-400 ml-2">
+                              ({pricing.start_time}-{pricing.end_time})
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-600/10 border border-yellow-600/20 rounded-lg p-4">
+                    <p className="text-sm text-yellow-400">
+                      ⚠️ Ten kort nie ma jeszcze przedziałów cenowych. Dodaj je w Ustawieniach → Kluby/Korty.
+                    </p>
+                  </div>
+                )}
+                
+                {selectedPricing && (
+                  <div className="bg-emerald-600/10 border border-emerald-600/20 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-emerald-400">
+                          {selectedCourt.name}
+                          <span className="text-xs text-emerald-300 ml-2">
+                            • {selectedPricing.name}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          Koszt za {durationHours}h: {(courtCostPerHour * durationHours).toFixed(2)} zł
+                        </div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          Przedział: {selectedPricing.start_time} - {selectedPricing.end_time}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-white">
+                          {courtCostPerHour} zł
+                        </div>
+                        <div className="text-xs text-slate-400">za godzinę</div>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-white">
-                      {courtCostPerHour} zł
-                    </div>
-                    <div className="text-xs text-slate-400">za godzinę</div>
-                  </div>
-                </div>
-              </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

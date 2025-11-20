@@ -11,22 +11,55 @@ export interface Profile {
   updated_at: string
 }
 
+export type CourtType = 'single' | 'double'
+
 export interface Court {
   id: string
   user_id: string
+  club_name: string | null
   name: string
+  court_type: CourtType
   hourly_rate: number | null
   is_active: boolean
   color: string | null
   display_order: number | null
   created_at: string
+  pricing?: CourtPricing[]
 }
 
 export interface CourtFormData {
+  club_name?: string
   name: string
+  court_type?: CourtType
   hourly_rate?: number
   is_active?: boolean
   color?: string
+  display_order?: number
+}
+
+export type DayType = 'weekday' | 'weekend' | 'all'
+
+export interface CourtPricing {
+  id: string
+  court_id: string
+  name: string
+  day_type: DayType
+  start_time: string
+  end_time: string
+  price_per_hour: number
+  is_active: boolean
+  display_order: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CourtPricingFormData {
+  name: string
+  day_type: DayType
+  start_time: string
+  end_time: string
+  price_per_hour: number
+  is_active?: boolean
   display_order?: number
 }
 

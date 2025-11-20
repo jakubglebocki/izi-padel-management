@@ -78,11 +78,58 @@ BEGIN
 END $$;
 ```
 
-## Krok 4: Testowanie
+## Krok 4: Dodaj kluby/korty (opcjonalnie)
+
+Po zalogowaniu dodaj swoje korty w ustawieniach:
+
+1. Przejdź do **Ustawienia** (w menu bocznym)
+2. Wybierz zakładkę **"Kluby/Korty"**
+3. Kliknij **"Dodaj klub/kort"**
+4. Wprowadź dane:
+   - Nazwa: np. "Kort 1 - Indoor"
+   - Cena za godzinę: np. 120 zł (cena domyślna)
+   - Wybierz kolor
+   - Zaznacz "Kort aktywny"
+5. Kliknij **"Dodaj kort"**
+
+**Przykładowe korty:**
+- Kort 1 Indoor - 120 zł/h (niebieski)
+- Kort 2 Outdoor - 100 zł/h (zielony)
+- Kort 3 Indoor - 120 zł/h (fioletowy)
+
+### Dodawanie przedziałów cenowych
+
+Po utworzeniu kortu możesz dodać różne ceny dla różnych godzin i dni:
+
+1. W liście kortów kliknij przycisk **"X przedziałów"** przy wybranym korcie
+2. Kliknij **"Dodaj przedział"**
+3. Wprowadź dane:
+   - Nazwa: np. "Rano (6:00-14:00)"
+   - Typ dni: Dni powszednie / Weekendy / Wszystkie dni
+   - Godzina od: np. 06:00
+   - Godzina do: np. 14:00
+   - Cena za godzinę: np. 180 zł
+4. Kliknij **"Dodaj przedział"**
+
+**Przykładowe przedziały (jak na obrazku):**
+
+**Kort 1 - Indoor:**
+- Rano (6:00-14:00) - Dni powszednie - 180 zł/h
+- Popoludnie/Wieczór (14:00-23:00) - Dni powszednie - 240 zł/h  
+- Weekendy - Weekendy (6:00-23:00) - 180 zł/h
+
+**Korzyści:**
+- System automatycznie dobierze odpowiednią cenę podczas tworzenia usługi
+- Różne ceny dla różnych pór dnia i dni tygodnia
+- Pełna elastyczność w zarządzaniu cennikiem
+
+## Krok 5: Testowanie
 
 1. Otwórz aplikację: `http://localhost:3000/login`
 2. Kliknij przycisk **"🎾 Demo - Zaloguj jako Trener"**
 3. Zostaniesz automatycznie zalogowany!
+4. Przejdź do **Ustawienia → Kluby/Korty** i dodaj swoje korty
+5. Następnie w **Usługi → Dodaj usługę** wybierz kort i zobacz podsumowanie finansowe
 
 ## Bezpieczeństwo
 
