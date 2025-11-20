@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useServices } from '@/hooks/useServices'
+import { useCourts } from '@/hooks/useCourts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ArrowLeft, Calculator } from 'lucide-react'
+import { ArrowLeft, Calculator, TrendingUp, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import type { ServiceType } from '@/types'
 
@@ -37,6 +38,7 @@ const colorOptions = [
 export default function NewServicePage() {
   const router = useRouter()
   const { createService } = useServices()
+  const { courts, loading: courtsLoading } = useCourts()
   const [loading, setLoading] = useState(false)
 
   // Form state
@@ -51,15 +53,33 @@ export default function NewServicePage() {
   const [sessionsCount, setSessionsCount] = useState<number>(10)
   const [color, setColor] = useState('#3b82f6')
   const [isActive, setIsActive] = useState(true)
+  const [selectedCourtId, setSelectedCourtId] = useState<string>('')
 
-  // Simple calculator
-  const courtCostPerHour = 100 // Przykładowy koszt kortu
+  // Get selected court rate
+  const selectedCourt = courts.find(c => c.id === selectedCourtId)
+  const courtCostPerHour = selectedCourt?.hourly_rate || 0
+
+  // Calculate financial summary
   const calculateRecommendedPrice = () => {
     const totalCost = courtCostPerHour * durationHours
     const targetRevenue = targetProfitPerHour * durationHours
     const totalPerSession = totalCost + targetRevenue
     const avgParticipants = (minParticipants + maxParticipants) / 2
     return Math.round(totalPerSession / avgParticipants)
+  }
+
+  const calculateSummary = () => {
+    const avgParticipants = (minParticipants + maxParticipants) / 2
+    const revenueFromClients = pricePerPerson * avgParticipants
+    const courtCost = courtCostPerHour * durationHours
+    const trainerProfit = revenueFromClients - courtCost
+    
+    return {
+      revenueFromClients,
+      courtCost,
+      trainerProfit,
+      trainerProfitPerHour: durationHours > 0 ? trainerProfit / durationHours : 0
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -281,6 +301,78 @@ export default function NewServicePage() {
           </CardContent>
         </Card>
 
+        {/* Club/Court Selection */}
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-emerald-400" />
+              <CardTitle className="text-white">Opcje klubu</CardTitle>
+            </div>
+            <CardDescription className="text-slate-400">
+              Wybierz klub/kort, na którym odbędą się treningi
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="court" className="text-slate-200">
+                Klub/Kort *
+              </Label>
+              {courtsLoading ? (
+                <div className="text-sm text-slate-400">Ładowanie kortów...</div>
+              ) : courts.length === 0 ? (
+                <div className="space-y-2">
+                  <div className="text-sm text-slate-400 bg-slate-800 border border-slate-700 rounded-lg p-4">
+                    Nie masz jeszcze żadnych kortów. Możesz dodać korty w ustawieniach.
+                  </div>
+                </div>
+              ) : (
+                <Select value={selectedCourtId} onValueChange={setSelectedCourtId}>
+                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                    <SelectValue placeholder="Wybierz klub/kort" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    {courts.map((court) => (
+                      <SelectItem
+                        key={court.id}
+                        value={court.id}
+                        className="text-white focus:bg-slate-700"
+                      >
+                        <div className="flex items-center justify-between w-full gap-4">
+                          <span>{court.name}</span>
+                          <span className="text-slate-400 text-sm">
+                            {court.hourly_rate ? `${court.hourly_rate} zł/h` : 'Brak ceny'}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {selectedCourt && (
+              <div className="bg-emerald-600/10 border border-emerald-600/20 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium text-emerald-400">
+                      {selectedCourt.name}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      Koszt za {durationHours}h: {(courtCostPerHour * durationHours).toFixed(2)} zł
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-white">
+                      {courtCostPerHour} zł
+                    </div>
+                    <div className="text-xs text-slate-400">za godzinę</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Pricing */}
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader>
@@ -346,6 +438,102 @@ export default function NewServicePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Financial Summary */}
+        {selectedCourtId && (
+          <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-yellow-400" />
+                <CardTitle className="text-white">Podsumowanie finansowe</CardTitle>
+              </div>
+              <CardDescription className="text-slate-400">
+                Szacunkowy podział kosztów i przychodów
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Trainer Profit */}
+                <div className="bg-green-600/10 border border-green-600/20 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-green-400 mb-1">
+                        💰 Przychód Trenera (brutto)
+                      </div>
+                      <div className="text-3xl font-bold text-white mb-1">
+                        {calculateSummary().trainerProfit.toFixed(2)} zł
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {calculateSummary().trainerProfitPerHour.toFixed(2)} zł / godzina
+                      </div>
+                      <div className="text-xs text-slate-500 mt-2">
+                        Przy średnio {((minParticipants + maxParticipants) / 2).toFixed(0)} uczestnikach
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Court Cost */}
+                <div className="bg-orange-600/10 border border-orange-600/20 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-orange-400 mb-1">
+                        🏟️ Koszt Kortu (brutto)
+                      </div>
+                      <div className="text-3xl font-bold text-white mb-1">
+                        {calculateSummary().courtCost.toFixed(2)} zł
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {courtCostPerHour.toFixed(2)} zł / godzina
+                      </div>
+                      <div className="text-xs text-slate-500 mt-2">
+                        Za {durationHours}h treningu
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Revenue Breakdown */}
+              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Przychód od klientów:</span>
+                    <span className="text-white font-semibold">
+                      {calculateSummary().revenueFromClients.toFixed(2)} zł
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Minus koszt kortu:</span>
+                    <span className="text-orange-400 font-semibold">
+                      - {calculateSummary().courtCost.toFixed(2)} zł
+                    </span>
+                  </div>
+                  <div className="border-t border-slate-700 pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-300 font-medium">Twój zysk netto:</span>
+                      <span className={`text-xl font-bold ${calculateSummary().trainerProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {calculateSummary().trainerProfit.toFixed(2)} zł
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {calculateSummary().trainerProfit < 0 && (
+                <div className="bg-red-600/10 border border-red-600/20 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-red-400 text-sm">⚠️</span>
+                    <div className="text-xs text-red-400">
+                      <strong>Uwaga:</strong> Przy obecnych ustawieniach Twój zysk jest ujemny. 
+                      Zwiększ cenę za osobę lub zmniejsz liczbę godzin.
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Actions */}
         <div className="flex gap-4">

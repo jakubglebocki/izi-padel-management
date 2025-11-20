@@ -22,6 +22,14 @@ export interface Court {
   created_at: string
 }
 
+export interface CourtFormData {
+  name: string
+  hourly_rate?: number
+  is_active?: boolean
+  color?: string
+  display_order?: number
+}
+
 export type ServiceType = 'single' | 'package' | 'camp'
 
 export interface Service {
