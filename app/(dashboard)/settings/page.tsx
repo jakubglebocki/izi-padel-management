@@ -320,10 +320,6 @@ export default function SettingsPage() {
             <Building2 className="h-4 w-4 mr-2" />
             Kluby/Korty
           </TabsTrigger>
-          <TabsTrigger value="groups" className="data-[state=active]:bg-slate-700">
-            <Users className="h-4 w-4 mr-2" />
-            Grupy
-          </TabsTrigger>
           <TabsTrigger value="packages" className="data-[state=active]:bg-slate-700">
             <PackageIcon className="h-4 w-4 mr-2" />
             Pakiety
@@ -822,8 +818,8 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Groups Tab */}
-        <TabsContent value="groups" className="space-y-4 mt-6">
+        {/* Packages Tab */}
+        <TabsContent value="packages" className="space-y-4 mt-6">
           <Card className="bg-slate-900 border-slate-800">
             <CardHeader>
               <div className="flex items-center justify-between">
