@@ -15,3 +15,4 @@ ALTER TABLE courts ADD COLUMN IF NOT EXISTS court_type TEXT DEFAULT 'double' CHE
 
 -- Gotowe!
 
+

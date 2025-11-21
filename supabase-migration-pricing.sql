@@ -129,3 +129,4 @@ INSERT INTO court_pricing (court_id, name, day_type, start_time, end_time, price
 -- Sprawdź polityki RLS:
 -- SELECT * FROM pg_policies WHERE tablename = 'court_pricing';
 
+
