@@ -98,7 +98,13 @@ export default function SettingsPage() {
     }
   }
 
-  const handleRemoveAvatar = () => {
+  const handleRemoveAvatar = async () => {
+    // If editing and there's an existing avatar URL, optionally delete from storage
+    if (editingCourt && editingCourt.avatar_url && avatarUrl === editingCourt.avatar_url) {
+      // Delete from storage
+      await deleteCourtAvatar(editingCourt.avatar_url)
+    }
+    
     setAvatarFile(null)
     setAvatarUrl(null)
     if (fileInputRef.current) {
@@ -314,18 +320,16 @@ export default function SettingsPage() {
                                 className="hidden"
                                 id="avatar-upload"
                               />
-                              <label htmlFor="avatar-upload">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => fileInputRef.current?.click()}
-                                  className="border-slate-700 text-slate-300 hover:bg-slate-800"
-                                >
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  {avatarUrl ? 'Zmień awatar' : 'Dodaj awatar'}
-                                </Button>
-                              </label>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                {avatarUrl ? 'Zmień awatar' : 'Dodaj awatar'}
+                              </Button>
                               <p className="text-xs text-slate-500 mt-2">
                                 JPG, PNG, GIF. Maks. 2MB
                               </p>
