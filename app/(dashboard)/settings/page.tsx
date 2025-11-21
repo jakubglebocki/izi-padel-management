@@ -1045,6 +1045,228 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
+        {/* Packages Tab */}
+        <TabsContent value="packages" className="space-y-4 mt-6">
+          <Card className="bg-slate-900 border-slate-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-white">Zarządzanie pakietami</CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Twórz pakiety treningów dla swoich klientów
+                  </CardDescription>
+                </div>
+                <Dialog open={isPackageDialogOpen} onOpenChange={setIsPackageDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Dodaj pakiet
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-slate-900 border-slate-700 text-white">
+                    <form onSubmit={handleSubmitPackage}>
+                      <DialogHeader>
+                        <DialogTitle className="text-white">Dodaj nowy pakiet</DialogTitle>
+                        <DialogDescription className="text-slate-400">
+                          Utwórz szablon pakietu treningów
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="package-name" className="text-slate-200">
+                            Nazwa pakietu *
+                          </Label>
+                          <Input
+                            id="package-name"
+                            value={packageName}
+                            onChange={(e) => setPackageName(e.target.value)}
+                            placeholder="np. 4 Treningi"
+                            required
+                            className="bg-slate-800 border-slate-700 text-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="package-description" className="text-slate-200">
+                            Opis
+                          </Label>
+                          <Textarea
+                            id="package-description"
+                            value={packageDescription}
+                            onChange={(e) => setPackageDescription(e.target.value)}
+                            placeholder="Opis pakietu..."
+                            rows={2}
+                            className="bg-slate-800 border-slate-700 text-white"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="package-sessions" className="text-slate-200">
+                              Liczba treningów *
+                            </Label>
+                            <Input
+                              id="package-sessions"
+                              type="number"
+                              min="1"
+                              value={packageSessionsCount}
+                              onChange={(e) => setPackageSessionsCount(parseInt(e.target.value))}
+                              required
+                              className="bg-slate-800 border-slate-700 text-white"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="package-price" className="text-slate-200">
+                              Cena (zł) *
+                            </Label>
+                            <Input
+                              id="package-price"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={packagePrice}
+                              onChange={(e) => setPackagePrice(parseFloat(e.target.value))}
+                              required
+                              className="bg-slate-800 border-slate-700 text-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="package-validity" className="text-slate-200">
+                            Ważność (dni)
+                          </Label>
+                          <Input
+                            id="package-validity"
+                            type="number"
+                            min="1"
+                            value={packageValidityDays}
+                            onChange={(e) => setPackageValidityDays(e.target.value ? parseInt(e.target.value) : '')}
+                            placeholder="Brak limitu"
+                            className="bg-slate-800 border-slate-700 text-white"
+                          />
+                          <p className="text-xs text-slate-500">
+                            Pozostaw puste dla pakietów bez daty wygaśnięcia
+                          </p>
+                        </div>
+                      </div>
+
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsPackageDialogOpen(false)}
+                          disabled={packageFormLoading}
+                          className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                        >
+                          Anuluj
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={packageFormLoading}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          {packageFormLoading ? 'Dodawanie...' : 'Dodaj pakiet'}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {packagesLoading ? (
+                <div className="text-center py-8 text-slate-400">Ładowanie pakietów...</div>
+              ) : packages.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  <PackageIcon className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-1">Brak pakietów</p>
+                  <p className="text-sm mb-4">Dodaj swój pierwszy pakiet treningów</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {packages.map((pkg) => (
+                    <Card key={pkg.id} className="bg-slate-800 border-slate-700">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-white text-lg">{pkg.name}</CardTitle>
+                            {pkg.description && (
+                              <CardDescription className="text-slate-400 mt-1">
+                                {pkg.description}
+                              </CardDescription>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeletePackage(pkg.id, pkg.name)}
+                            className="text-slate-400 hover:text-red-400 hover:bg-slate-700 -mt-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 text-sm">Liczba treningów:</span>
+                            <span className="text-white font-semibold">{pkg.sessions_count}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 text-sm">Cena:</span>
+                            <span className="text-green-400 font-semibold text-lg">{pkg.price} zł</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 text-sm">Cena za trening:</span>
+                            <span className="text-slate-300">{(pkg.price / pkg.sessions_count).toFixed(2)} zł</span>
+                          </div>
+                          {pkg.validity_days && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 text-sm">Ważność:</span>
+                              <span className="text-slate-300">{pkg.validity_days} dni</span>
+                            </div>
+                          )}
+                          <Badge
+                            variant="outline"
+                            className={
+                              pkg.is_active
+                                ? 'bg-green-500/10 text-green-400 border-green-500/20 w-full justify-center'
+                                : 'bg-slate-500/10 text-slate-400 border-slate-500/20 w-full justify-center'
+                            }
+                          >
+                            {pkg.is_active ? 'Aktywny' : 'Nieaktywny'}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Info Card */}
+          <Card className="bg-green-600/10 border-green-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <PackageIcon className="h-5 w-5 text-green-400 mt-0.5" />
+                <div className="text-sm text-slate-300">
+                  <p className="font-medium text-white mb-1">
+                    💡 Wskazówka
+                  </p>
+                  <p>
+                    Pakiety pozwalają klientom kupować treningi z rabatem (np. 4 treningi za cenę 3.5).
+                    Po zakupie pakietu, klient ma saldo treningów które jest automatycznie odejmowane po każdym odbytym treningu.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-4 mt-6">
           <Card className="bg-slate-900 border-slate-800">
