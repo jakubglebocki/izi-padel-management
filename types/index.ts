@@ -85,6 +85,89 @@ export interface Service {
   updated_at: string
 }
 
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'professional'
+export type PackageStatus = 'active' | 'expired' | 'completed'
+export type AttendanceStatus = 'present' | 'absent' | 'excused' | 'late'
+export type RecurringPattern = 'weekly' | 'biweekly' | 'monthly' | null
+
+export interface Group {
+  id: string
+  user_id: string
+  name: string
+  description: string | null
+  color: string | null
+  max_participants: number | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Package {
+  id: string
+  user_id: string
+  name: string
+  description: string | null
+  sessions_count: number
+  price: number
+  validity_days: number | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ClientPackage {
+  id: string
+  client_id: string
+  package_id: string
+  sessions_remaining: number
+  sessions_total: number
+  purchase_date: string
+  expiry_date: string | null
+  amount_paid: number
+  status: PackageStatus
+  created_at: string
+  updated_at: string
+  // Relations
+  package?: Package
+  client?: Client
+}
+
+export interface GroupSession {
+  id: string
+  user_id: string
+  group_id: string
+  court_id: string | null
+  date: string
+  start_time: string
+  end_time: string
+  recurring_pattern: RecurringPattern
+  recurring_day_of_week: number | null
+  notes: string | null
+  is_cancelled: boolean
+  created_at: string
+  updated_at: string
+  // Relations
+  group?: Group
+  court?: Court
+  attendance?: Attendance[]
+}
+
+export interface Attendance {
+  id: string
+  session_id: string
+  client_id: string
+  client_package_id: string | null
+  status: AttendanceStatus
+  checked_in_at: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  // Relations
+  client?: Client
+  session?: GroupSession
+  client_package?: ClientPackage
+}
+
 export interface Client {
   id: string
   user_id: string
@@ -94,8 +177,12 @@ export interface Client {
   phone: string | null
   notes: string | null
   tags: string[] | null
+  skill_level: SkillLevel | null
+  group_id: string | null
   created_at: string
   updated_at: string
+  // Relations
+  group?: Group
 }
 
 export type BookingStatus = 'confirmed' | 'pending' | 'cancelled'
@@ -160,6 +247,8 @@ export interface ClientFormData {
   phone?: string
   notes?: string
   tags?: string[]
+  skill_level?: SkillLevel | null
+  group_id?: string | null
 }
 
 export interface BookingFormData {

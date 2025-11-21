@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useClients } from '@/hooks/useClients'
+import { useGroups } from '@/hooks/useGroups'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,12 +32,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, MoreVertical, Edit, Trash2, Users, Search } from 'lucide-react'
+import type { SkillLevel } from '@/types'
+
+const skillLevelLabels: Record<SkillLevel, string> = {
+  beginner: 'Początkujący',
+  intermediate: 'Średniozaawansowany',
+  advanced: 'Zaawansowany',
+  professional: 'Profesjonalny',
+}
+
+const skillLevelColors: Record<SkillLevel, string> = {
+  beginner: 'bg-green-500/10 text-green-400 border-green-500/20',
+  intermediate: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  advanced: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+  professional: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+}
 
 export default function ClientsPage() {
   const { clients, loading, createClient, deleteClient } = useClients()
+  const { groups, loading: groupsLoading } = useGroups()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -48,6 +72,8 @@ export default function ClientsPage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
+  const [skillLevel, setSkillLevel] = useState<SkillLevel | ''>('')
+  const [groupId, setGroupId] = useState<string>('')
 
   const handleDelete = async (id: string) => {
     if (!confirm('Czy na pewno chcesz usunąć tego klienta?')) return
@@ -72,6 +98,8 @@ export default function ClientsPage() {
         phone: phone || null,
         notes: notes || null,
         tags: null,
+        skill_level: skillLevel || null,
+        group_id: groupId || null,
       })
 
       // Reset form
@@ -80,6 +108,8 @@ export default function ClientsPage() {
       setEmail('')
       setPhone('')
       setNotes('')
+      setSkillLevel('')
+      setGroupId('')
       setDialogOpen(false)
     } catch (error) {
       console.error('Error creating client:', error)
@@ -183,6 +213,59 @@ export default function ClientsPage() {
                     className="bg-slate-800 border-slate-700 text-white"
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="skillLevel" className="text-slate-200">
+                      Poziom
+                    </Label>
+                    <Select value={skillLevel} onValueChange={(value) => setSkillLevel(value as SkillLevel)}>
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectValue placeholder="Wybierz poziom..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectItem value="beginner" className="text-white focus:bg-slate-700">
+                          Początkujący
+                        </SelectItem>
+                        <SelectItem value="intermediate" className="text-white focus:bg-slate-700">
+                          Średniozaawansowany
+                        </SelectItem>
+                        <SelectItem value="advanced" className="text-white focus:bg-slate-700">
+                          Zaawansowany
+                        </SelectItem>
+                        <SelectItem value="professional" className="text-white focus:bg-slate-700">
+                          Profesjonalny
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="group" className="text-slate-200">
+                      Grupa
+                    </Label>
+                    <Select value={groupId} onValueChange={setGroupId}>
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectValue placeholder="Wybierz grupę..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-800 border-slate-700">
+                        {groupsLoading ? (
+                          <SelectItem value="loading" disabled className="text-slate-500">
+                            Ładowanie...
+                          </SelectItem>
+                        ) : groups.length === 0 ? (
+                          <SelectItem value="none" disabled className="text-slate-500">
+                            Brak grup
+                          </SelectItem>
+                        ) : (
+                          groups.map((group) => (
+                            <SelectItem key={group.id} value={group.id} className="text-white focus:bg-slate-700">
+                              {group.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="notes" className="text-slate-200">
                     Notatki
@@ -275,6 +358,8 @@ export default function ClientsPage() {
                     <TableHead className="text-slate-400">Klient</TableHead>
                     <TableHead className="text-slate-400">Email</TableHead>
                     <TableHead className="text-slate-400">Telefon</TableHead>
+                    <TableHead className="text-slate-400">Poziom</TableHead>
+                    <TableHead className="text-slate-400">Grupa</TableHead>
                     <TableHead className="text-slate-400">Notatki</TableHead>
                     <TableHead className="text-slate-400 text-right">Akcje</TableHead>
                   </TableRow>
@@ -297,6 +382,18 @@ export default function ClientsPage() {
                       </TableCell>
                       <TableCell className="text-slate-300">
                         {client.phone || '-'}
+                      </TableCell>
+                      <TableCell>
+                        {client.skill_level ? (
+                          <Badge variant="outline" className={skillLevelColors[client.skill_level]}>
+                            {skillLevelLabels[client.skill_level]}
+                          </Badge>
+                        ) : (
+                          <span className="text-slate-500">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-slate-300">
+                        {client.group?.name || '-'}
                       </TableCell>
                       <TableCell className="text-slate-300">
                         {client.notes ? (

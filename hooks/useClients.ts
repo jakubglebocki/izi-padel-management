@@ -21,7 +21,10 @@ export function useClients() {
 
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
+        .select(`
+          *,
+          group:groups(*)
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
