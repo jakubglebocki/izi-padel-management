@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -617,9 +617,8 @@ export default function SettingsPage() {
                   </TableHeader>
                   <TableBody>
                     {courts.map((court) => (
-                      <>
+                      <React.Fragment key={court.id}>
                         <TableRow
-                          key={court.id}
                           className="border-slate-800 hover:bg-slate-800/50"
                         >
                           <TableCell>
@@ -708,7 +707,7 @@ export default function SettingsPage() {
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </React.Fragment>
                     ))}
                   </TableBody>
                 </Table>
