@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -31,9 +31,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Settings as SettingsIcon, Plus, Building2, Edit, Trash2, DollarSign, ChevronDown, ChevronUp, Clock, X } from 'lucide-react'
+import { Settings as SettingsIcon, Plus, Building2, Edit, Trash2, DollarSign, ChevronDown, ChevronUp, Clock, X, Upload, Image as ImageIcon } from 'lucide-react'
 import { useCourts } from '@/hooks/useCourts'
 import { CourtPricingManager } from '@/components/courts/CourtPricingManager'
+import { uploadCourtAvatar, deleteCourtAvatar } from '@/lib/supabase/upload'
+import { createClient } from '@/lib/supabase/client'
 import type { Court, CourtPricingFormData, DayType, CourtType } from '@/types'
 
 export default function SettingsPage() {
@@ -42,12 +44,16 @@ export default function SettingsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCourt, setEditingCourt] = useState<Court | null>(null)
   const [formLoading, setFormLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Court form state
   const [clubName, setClubName] = useState('')
   const [courtType, setCourtType] = useState<CourtType>('double')
   const [courtColor, setCourtColor] = useState('#3b82f6')
   const [courtActive, setCourtActive] = useState(true)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   
   // Pricing slots state
   const [pricingSlots, setPricingSlots] = useState<CourtPricingFormData[]>([])
@@ -65,9 +71,39 @@ export default function SettingsPage() {
     setCourtType('double')
     setCourtColor('#3b82f6')
     setCourtActive(true)
+    setAvatarUrl(null)
+    setAvatarFile(null)
     setPricingSlots([])
     setShowPricingForm(false)
     setEditingCourt(null)
+  }
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Proszę wybrać plik obrazu')
+        return
+      }
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Plik jest za duży. Maksymalny rozmiar to 2MB')
+        return
+      }
+      setAvatarFile(file)
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file)
+      setAvatarUrl(previewUrl)
+    }
+  }
+
+  const handleRemoveAvatar = () => {
+    setAvatarFile(null)
+    setAvatarUrl(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
   
   const resetPricingForm = () => {
@@ -104,6 +140,7 @@ export default function SettingsPage() {
       setCourtType(court.court_type || 'double')
       setCourtColor(court.color || '#3b82f6')
       setCourtActive(court.is_active)
+      setAvatarUrl(court.avatar_url || null)
     } else {
       resetForm()
     }
@@ -120,6 +157,23 @@ export default function SettingsPage() {
     setFormLoading(true)
 
     try {
+      let uploadedAvatarUrl = avatarUrl
+
+      // Upload avatar if a new file was selected
+      if (avatarFile) {
+        setUploadingAvatar(true)
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          const uploadedUrl = await uploadCourtAvatar(avatarFile, user.id)
+          if (uploadedUrl) {
+            uploadedAvatarUrl = uploadedUrl
+          }
+        }
+        setUploadingAvatar(false)
+      }
+
       if (editingCourt) {
         await updateCourt(editingCourt.id, {
           club_name: clubName || null,
@@ -127,6 +181,7 @@ export default function SettingsPage() {
           court_type: courtType,
           hourly_rate: null,
           color: courtColor,
+          avatar_url: uploadedAvatarUrl || null,
           is_active: courtActive,
         })
       } else {
@@ -137,6 +192,7 @@ export default function SettingsPage() {
           court_type: courtType,
           hourly_rate: null,
           color: courtColor,
+          avatar_url: uploadedAvatarUrl || null,
           is_active: courtActive,
           display_order: courts.length,
         })
@@ -153,6 +209,7 @@ export default function SettingsPage() {
       console.error('Error saving court:', error)
     } finally {
       setFormLoading(false)
+      setUploadingAvatar(false)
     }
   }
 
@@ -222,6 +279,60 @@ export default function SettingsPage() {
                       </DialogHeader>
                       
                       <div className="space-y-4 py-4">
+                        {/* Avatar Upload Section */}
+                        <div className="space-y-2">
+                          <Label className="text-slate-200">Awatar klubu</Label>
+                          <div className="flex items-center gap-4">
+                            {avatarUrl ? (
+                              <div className="relative">
+                                <img
+                                  src={avatarUrl}
+                                  alt="Avatar klubu"
+                                  className="w-20 h-20 rounded-lg object-cover border-2 border-slate-700"
+                                />
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={handleRemoveAvatar}
+                                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 hover:bg-red-600 text-white"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="w-20 h-20 rounded-lg bg-slate-800 border-2 border-dashed border-slate-700 flex items-center justify-center">
+                                <ImageIcon className="h-8 w-8 text-slate-600" />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleAvatarFileChange}
+                                className="hidden"
+                                id="avatar-upload"
+                              />
+                              <label htmlFor="avatar-upload">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => fileInputRef.current?.click()}
+                                  className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                                >
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  {avatarUrl ? 'Zmień awatar' : 'Dodaj awatar'}
+                                </Button>
+                              </label>
+                              <p className="text-xs text-slate-500 mt-2">
+                                JPG, PNG, GIF. Maks. 2MB
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="club-name" className="text-slate-200">
@@ -509,10 +620,20 @@ export default function SettingsPage() {
                         >
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: court.color || '#3b82f6' }}
-                              />
+                              {court.avatar_url ? (
+                                <img
+                                  src={court.avatar_url}
+                                  alt={court.club_name || court.name}
+                                  className="w-10 h-10 rounded-lg object-cover border border-slate-700"
+                                />
+                              ) : (
+                                <div
+                                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold text-sm"
+                                  style={{ backgroundColor: court.color || '#3b82f6' }}
+                                >
+                                  {(court.club_name || court.name).substring(0, 2).toUpperCase()}
+                                </div>
+                              )}
                               <div>
                                 <div className="text-white font-medium">
                                   {court.club_name || court.name}

@@ -22,6 +22,7 @@ export interface Court {
   hourly_rate: number | null
   is_active: boolean
   color: string | null
+  avatar_url: string | null
   display_order: number | null
   created_at: string
   pricing?: CourtPricing[]
@@ -34,6 +35,7 @@ export interface CourtFormData {
   hourly_rate?: number
   is_active?: boolean
   color?: string
+  avatar_url?: string
   display_order?: number
 }
 

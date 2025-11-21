@@ -31,6 +31,7 @@ CREATE TABLE courts (
     hourly_rate DECIMAL(10,2),
     is_active BOOLEAN DEFAULT true,
     color TEXT DEFAULT '#3b82f6',
+    avatar_url TEXT,
     display_order INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
