@@ -31,8 +31,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Settings as SettingsIcon, Plus, Building2, Edit, Trash2, DollarSign, ChevronDown, ChevronUp, Clock, X, Upload, Image as ImageIcon } from 'lucide-react'
+import { Settings as SettingsIcon, Plus, Building2, Edit, Trash2, DollarSign, ChevronDown, ChevronUp, Clock, X, Upload, Image as ImageIcon, Users, Package as PackageIcon } from 'lucide-react'
 import { useCourts } from '@/hooks/useCourts'
+import { useGroups } from '@/hooks/useGroups'
+import { usePackages } from '@/hooks/usePackages'
 import { CourtPricingManager } from '@/components/courts/CourtPricingManager'
 import { uploadCourtAvatar, deleteCourtAvatar } from '@/lib/supabase/upload'
 import { createClient } from '@/lib/supabase/client'
@@ -40,10 +42,16 @@ import type { Court, CourtPricingFormData, DayType, CourtType } from '@/types'
 
 export default function SettingsPage() {
   const { courts, loading: courtsLoading, createCourt, updateCourt, deleteCourt, createCourtPricing, updateCourtPricing, deleteCourtPricing } = useCourts()
+  const { groups, loading: groupsLoading, createGroup } = useGroups()
+  const { packages, loading: packagesLoading, createPackage, deletePackage } = usePackages()
   const [expandedCourtId, setExpandedCourtId] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
+  const [isPackageDialogOpen, setIsPackageDialogOpen] = useState(false)
   const [editingCourt, setEditingCourt] = useState<Court | null>(null)
   const [formLoading, setFormLoading] = useState(false)
+  const [groupFormLoading, setGroupFormLoading] = useState(false)
+  const [packageFormLoading, setPackageFormLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Court form state
@@ -58,6 +66,19 @@ export default function SettingsPage() {
   // Pricing slots state
   const [pricingSlots, setPricingSlots] = useState<CourtPricingFormData[]>([])
   const [showPricingForm, setShowPricingForm] = useState(false)
+  
+  // Group form state
+  const [groupName, setGroupName] = useState('')
+  const [groupDescription, setGroupDescription] = useState('')
+  const [groupColor, setGroupColor] = useState('#3b82f6')
+  const [groupMaxParticipants, setGroupMaxParticipants] = useState<number>(10)
+  
+  // Package form state
+  const [packageName, setPackageName] = useState('')
+  const [packageDescription, setPackageDescription] = useState('')
+  const [packageSessionsCount, setPackageSessionsCount] = useState<number>(4)
+  const [packagePrice, setPackagePrice] = useState<number>(200)
+  const [packageValidityDays, setPackageValidityDays] = useState<number | ''>('')
   
   // New pricing slot form state
   const [newPricingName, setNewPricingName] = useState('')
@@ -224,6 +245,65 @@ export default function SettingsPage() {
     await deleteCourt(court.id)
   }
 
+  const handleSubmitGroup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setGroupFormLoading(true)
+
+    try {
+      await createGroup({
+        name: groupName,
+        description: groupDescription || null,
+        color: groupColor,
+        max_participants: groupMaxParticipants,
+        is_active: true,
+      })
+
+      // Reset form
+      setGroupName('')
+      setGroupDescription('')
+      setGroupColor('#3b82f6')
+      setGroupMaxParticipants(10)
+      setIsGroupDialogOpen(false)
+    } catch (error) {
+      console.error('Error creating group:', error)
+    } finally {
+      setGroupFormLoading(false)
+    }
+  }
+
+  const handleSubmitPackage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPackageFormLoading(true)
+
+    try {
+      await createPackage({
+        name: packageName,
+        description: packageDescription || null,
+        sessions_count: packageSessionsCount,
+        price: packagePrice,
+        validity_days: packageValidityDays || null,
+        is_active: true,
+      })
+
+      // Reset form
+      setPackageName('')
+      setPackageDescription('')
+      setPackageSessionsCount(4)
+      setPackagePrice(200)
+      setPackageValidityDays('')
+      setIsPackageDialogOpen(false)
+    } catch (error) {
+      console.error('Error creating package:', error)
+    } finally {
+      setPackageFormLoading(false)
+    }
+  }
+
+  const handleDeletePackage = async (id: string, name: string) => {
+    if (!confirm(`Czy na pewno chcesz usunąć pakiet "${name}"?`)) return
+    await deletePackage(id)
+  }
+
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Header */}
@@ -239,6 +319,14 @@ export default function SettingsPage() {
           <TabsTrigger value="courts" className="data-[state=active]:bg-slate-700">
             <Building2 className="h-4 w-4 mr-2" />
             Kluby/Korty
+          </TabsTrigger>
+          <TabsTrigger value="groups" className="data-[state=active]:bg-slate-700">
+            <Users className="h-4 w-4 mr-2" />
+            Grupy
+          </TabsTrigger>
+          <TabsTrigger value="packages" className="data-[state=active]:bg-slate-700">
+            <PackageIcon className="h-4 w-4 mr-2" />
+            Pakiety
           </TabsTrigger>
           <TabsTrigger value="profile" className="data-[state=active]:bg-slate-700">
             <SettingsIcon className="h-4 w-4 mr-2" />
@@ -727,6 +815,229 @@ export default function SettingsPage() {
                   <p>
                     Kluby/korty dodane tutaj będą dostępne podczas tworzenia usług. 
                     Cena za godzinę będzie automatycznie używana do kalkulacji kosztów.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Groups Tab */}
+        <TabsContent value="groups" className="space-y-4 mt-6">
+          <Card className="bg-slate-900 border-slate-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-white">Zarządzanie grupami treningowymi</CardTitle>
+                  <CardDescription className="text-slate-400">
+                    Organizuj klientów w grupy treningowe
+                  </CardDescription>
+                </div>
+                <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Dodaj grupę
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-slate-900 border-slate-700 text-white">
+                    <form onSubmit={handleSubmitGroup}>
+                      <DialogHeader>
+                        <DialogTitle className="text-white">Dodaj nową grupę</DialogTitle>
+                        <DialogDescription className="text-slate-400">
+                          Utwórz grupę treningową dla swoich klientów
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="group-name" className="text-slate-200">
+                            Nazwa grupy *
+                          </Label>
+                          <Input
+                            id="group-name"
+                            value={groupName}
+                            onChange={(e) => setGroupName(e.target.value)}
+                            placeholder="np. Grupa Zaawansowana"
+                            required
+                            className="bg-slate-800 border-slate-700 text-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="group-description" className="text-slate-200">
+                            Opis
+                          </Label>
+                          <Textarea
+                            id="group-description"
+                            value={groupDescription}
+                            onChange={(e) => setGroupDescription(e.target.value)}
+                            placeholder="Opis grupy..."
+                            rows={3}
+                            className="bg-slate-800 border-slate-700 text-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="group-max-participants" className="text-slate-200">
+                            Maksymalna liczba uczestników
+                          </Label>
+                          <Input
+                            id="group-max-participants"
+                            type="number"
+                            min="1"
+                            value={groupMaxParticipants}
+                            onChange={(e) => setGroupMaxParticipants(parseInt(e.target.value))}
+                            className="bg-slate-800 border-slate-700 text-white"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="group-color" className="text-slate-200">
+                            Kolor
+                          </Label>
+                          <div className="flex gap-3 flex-wrap">
+                            {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'].map(
+                              (color) => (
+                                <button
+                                  key={color}
+                                  type="button"
+                                  onClick={() => setGroupColor(color)}
+                                  className={`w-10 h-10 rounded-lg border-2 transition-all ${
+                                    groupColor === color
+                                      ? 'border-white scale-110'
+                                      : 'border-slate-700 hover:border-slate-500'
+                                  }`}
+                                  style={{ backgroundColor: color }}
+                                />
+                              )
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsGroupDialogOpen(false)}
+                          disabled={groupFormLoading}
+                          className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                        >
+                          Anuluj
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={groupFormLoading}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          {groupFormLoading ? 'Dodawanie...' : 'Dodaj grupę'}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {groupsLoading ? (
+                <div className="text-center py-8 text-slate-400">Ładowanie grup...</div>
+              ) : groups.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  <Users className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-1">Brak grup</p>
+                  <p className="text-sm mb-4">Dodaj swoją pierwszą grupę treningową</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-slate-800 hover:bg-slate-800/50">
+                      <TableHead className="text-slate-400">Grupa</TableHead>
+                      <TableHead className="text-slate-400">Opis</TableHead>
+                      <TableHead className="text-slate-400">Max uczestników</TableHead>
+                      <TableHead className="text-slate-400">Status</TableHead>
+                      <TableHead className="text-slate-400 text-right">Akcje</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {groups.map((group) => (
+                      <TableRow
+                        key={group.id}
+                        className="border-slate-800 hover:bg-slate-800/50"
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold"
+                              style={{ backgroundColor: group.color || '#3b82f6' }}
+                            >
+                              {group.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="text-white font-medium">{group.name}</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {group.description ? (
+                            <span className="line-clamp-1">{group.description}</span>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell className="text-slate-300">
+                          {group.max_participants || 'Bez limitu'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              group.is_active
+                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                            }
+                          >
+                            {group.is_active ? 'Aktywna' : 'Nieaktywna'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-slate-400 hover:text-white hover:bg-slate-800"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-slate-400 hover:text-red-400 hover:bg-slate-800"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Info Card */}
+          <Card className="bg-purple-600/10 border-purple-500/20">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <Users className="h-5 w-5 text-purple-400 mt-0.5" />
+                <div className="text-sm text-slate-300">
+                  <p className="font-medium text-white mb-1">
+                    💡 Wskazówka
+                  </p>
+                  <p>
+                    Grupy pozwalają organizować klientów według poziomu zaawansowania.
+                    Możesz przypisać klientów do grup w sekcji Klienci.
                   </p>
                 </div>
               </div>
