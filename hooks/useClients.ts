@@ -13,11 +13,18 @@ export function useClients() {
     try {
       const supabase = createClient()
       setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      console.log('🔐 Auth check:', { user: user?.id, email: user?.email, authError })
       
       if (!user) {
-        throw new Error('Not authenticated')
+        console.error('❌ User not authenticated')
+        toast.error('Musisz być zalogowany aby zobaczyć klientów')
+        setClients([])
+        return
       }
+
+      console.log('📊 Fetching clients for user:', user.id)
 
       // First try with groups join
       let { data, error } = await supabase
@@ -29,26 +36,44 @@ export function useClients() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
+      console.log('📋 Query result:', { dataCount: data?.length, error })
+
       // If error about missing table/relation, try without join
       if (error && (error.message?.includes('relation') || error.code === 'PGRST116' || error.message?.includes('does not exist'))) {
-        console.log('Groups table not found, fetching clients without join...')
+        console.log('⚠️ Groups table not found, fetching clients without join...')
         const result = await supabase
           .from('clients')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
         
-        if (result.error) throw result.error
+        if (result.error) {
+          console.error('❌ Fallback query error:', result.error)
+          throw result.error
+        }
         data = result.data
         error = null
+        console.log('✅ Fallback query success:', { dataCount: data?.length })
       }
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Query error:', error)
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        })
+        throw error
+      }
 
+      console.log('✅ Clients loaded:', data?.length || 0)
       setClients(data || [])
-    } catch (error) {
-      console.error('Error fetching clients:', error)
-      toast.error('Błąd pobierania klientów')
+    } catch (error: any) {
+      console.error('❌ Error fetching clients:', error)
+      console.error('Full error object:', JSON.stringify(error, null, 2))
+      toast.error(`Błąd pobierania klientów: ${error?.message || 'Nieznany błąd'}`)
+      setClients([])
     } finally {
       setLoading(false)
     }
