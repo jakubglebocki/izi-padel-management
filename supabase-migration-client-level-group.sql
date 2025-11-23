@@ -54,3 +54,4 @@ CREATE POLICY "Users can delete own groups"
     ON groups FOR DELETE
     USING (auth.uid() = user_id);
 
+

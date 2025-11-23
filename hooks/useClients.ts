@@ -19,14 +19,29 @@ export function useClients() {
         throw new Error('Not authenticated')
       }
 
-      const { data, error } = await supabase
+      // First try with groups join
+      let { data, error } = await supabase
         .from('clients')
         .select(`
           *,
-          group:groups(*)
+          group:groups!left(*)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
+
+      // If error about missing table/relation, try without join
+      if (error && (error.message?.includes('relation') || error.code === 'PGRST116' || error.message?.includes('does not exist'))) {
+        console.log('Groups table not found, fetching clients without join...')
+        const result = await supabase
+          .from('clients')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+        
+        if (result.error) throw result.error
+        data = result.data
+        error = null
+      }
 
       if (error) throw error
 
