@@ -65,11 +65,18 @@ export default function NewServicePage() {
 
   // Calculate financial summary
   const calculateRecommendedPrice = () => {
-    const totalCost = courtCostPerHour * durationHours
+    const courtCost = courtCostPerHour * durationHours
     const targetRevenue = targetProfitPerHour * durationHours
-    const totalPerSession = totalCost + targetRevenue
+    const totalCost = courtCost + targetRevenue
     const avgParticipants = (minParticipants + maxParticipants) / 2
-    return Math.round(totalPerSession / avgParticipants)
+    return Math.round(totalCost / avgParticipants)
+  }
+
+  // Calculate total price (training + court cost)
+  const calculateTotalPrice = () => {
+    const courtCost = courtCostPerHour * durationHours
+    const trainingPrice = pricePerPerson * ((minParticipants + maxParticipants) / 2)
+    return courtCost + trainingPrice
   }
 
   const calculateSummary = () => {
@@ -470,14 +477,27 @@ export default function NewServicePage() {
             <div className="bg-blue-600/10 border border-blue-600/20 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <Calculator className="h-5 w-5 text-blue-400 mt-0.5" />
-                <div>
+                <div className="flex-1">
                   <div className="text-sm font-medium text-blue-400 mb-1">
-                    Sugerowana cena
+                    Sugerowana cena za osobę
                   </div>
                   <div className="text-2xl font-bold text-white mb-2">
                     {recommendedPrice} zł / osoba
                   </div>
-                  <div className="text-xs text-slate-400">
+                  {selectedCourtId && selectedPricingId && (
+                    <div className="mt-3 pt-3 border-t border-blue-600/20">
+                      <div className="text-sm font-medium text-blue-300 mb-1">
+                        Całkowita cena za trening
+                      </div>
+                      <div className="text-xl font-bold text-white">
+                        {calculateTotalPrice().toFixed(2)} zł
+                      </div>
+                      <div className="text-xs text-slate-400 mt-1">
+                        (Cena treningu: {pricePerPerson * ((minParticipants + maxParticipants) / 2).toFixed(2)} zł + Koszt kortu: {(courtCostPerHour * durationHours).toFixed(2)} zł)
+                      </div>
+                    </div>
+                  )}
+                  <div className="text-xs text-slate-400 mt-2">
                     Przy {minParticipants}-{maxParticipants} uczestnikach i {durationHours}h treningu
                   </div>
                 </div>
@@ -545,19 +565,25 @@ export default function NewServicePage() {
               <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Przychód od klientów:</span>
+                    <span className="text-slate-400">Cena treningu (od klientów):</span>
                     <span className="text-white font-semibold">
                       {calculateSummary().revenueFromClients.toFixed(2)} zł
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Minus koszt kortu:</span>
+                    <span className="text-slate-400">Koszt kortu:</span>
                     <span className="text-orange-400 font-semibold">
-                      - {calculateSummary().courtCost.toFixed(2)} zł
+                      {calculateSummary().courtCost.toFixed(2)} zł
                     </span>
                   </div>
                   <div className="border-t border-slate-700 pt-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-slate-300 font-medium">Całkowita cena za trening:</span>
+                      <span className="text-xl font-bold text-blue-400">
+                        {calculateTotalPrice().toFixed(2)} zł
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-700">
                       <span className="text-slate-300 font-medium">Twój zysk netto:</span>
                       <span className={`text-xl font-bold ${calculateSummary().trainerProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                         {calculateSummary().trainerProfit.toFixed(2)} zł
